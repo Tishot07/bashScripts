@@ -1,0 +1,52 @@
+#!/bin/bash
+
+TASKNAME=monthly
+#TASKNAME=weekly
+#TASKNAME=daily
+
+OF=$(date +%Y%m%d).tar.gz
+
+LOGFILE=/home/***/log/backup.log
+
+echo  >>$LOGFILE
+echo "====================================================="  >>$LOGFILE
+echo "$(date +'%d-%b-%Y %R')" >>$LOGFILE
+echo "Задание \"$TN\" запущено..." >>$LOGFILE
+
+#Есть проблема в том что если указывать в параметрах команд (напр. tar) имена каталогов с пробелами, скрипт срабатывает с ошибкой. 
+#Решение найдено на просторах интернета — операционная система linux использует пробел в качестве стандартного разделителя параметров команды. 
+#Переопределим стандартный разделитель (хранится в переменной $IFS) отличным от пробела, например \n – знаком переноса строки.
+
+OLD_IFS=$IFS
+IFS=$'\n'
+
+#каталог с данными для бэкапа
+SRCD="/home/***/**
+/home/***/**
+/home/***/**
+/home/***/log"
+
+
+TGTD="/media/***/***/backup/"
+
+tar -czf $TGTD$OF $SRCD &>>$LOGFILE
+#tar -u -f $TGTD$OF $SRCD &>>$LOGFILE
+
+STATUS=$?
+
+IFS=$OLD_IFS
+
+if [[ $STATUS != 0 ]]; then
+    rm $TGTD$OF &>>$LOGFILE
+    echo "###########################################" >>$LOGFILE
+    echo "###  Произошла ошибка! Бэкап не удался. ###" >>$LOGFILE
+    echo "###########################################" >>$LOGFILE
+    echo "$(date +'%d-%b-%Y %R%nФайл') бекапа $OF не создан" | /usr/bin/sendEmail -f root@server.ru -t ***@ya.ru -o message-charset=utf-8  -u BackupError -m "$(date +'%d-%b-%Y %R%nФайл') бекапа $OF не создан" &>>$LOGFILE
+else
+    echo "Файл бэкапа сохранен как \"$TGTD$OF\"" >>$LOGFILE
+    echo "Бэкап успешно завершен в $(date +'%R %d-%b-%Y')!" >>$LOGFILE | /usr/bin/sendEmail -f root@server.ru -t ***@ya.ru -o message-charset=utf-8  -u BackupOk -m "Бэкап успешно завершен в $(date +'%R %d-%b-%Y')!" &>>$LOGFILE
+fi
+exit
+
+
+
